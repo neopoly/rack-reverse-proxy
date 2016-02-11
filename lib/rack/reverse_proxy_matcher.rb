@@ -1,9 +1,10 @@
 module Rack
   class ReverseProxyMatcher
-    def initialize(matcher,url=nil,options)
+    def initialize(matcher,url=nil,options,&block)
       @default_url=url
       @url=url
       @options=options
+      @block=block
 
       if matcher.kind_of?(String)
         @matcher = /^#{matcher.to_s}/
@@ -33,6 +34,11 @@ module Rack
 
     def to_s
       %Q("#{matcher.to_s}" => "#{url}")
+    end
+
+    def callback(target_response, response_headers)
+      return @block.call(target_response, response_headers) if @block
+      [target_response.status, response_headers, target_response.body]
     end
 
     private

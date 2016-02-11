@@ -75,6 +75,7 @@ module Rack
       # Create a streaming response (the actual network communication is deferred, a.k.a. streamed)
       target_response = HttpStreamingResponse.new(target_request, uri.host, uri.port)
 
+      # Give matcher the chance to manipulate response
       target_response.use_ssl = "https" == uri.scheme
 
       # Let rack set the transfer-encoding header
@@ -88,7 +89,7 @@ module Rack
         response_headers['location'] = response_location.to_s
       end
 
-      [target_response.status, response_headers, target_response.body]
+      matcher.callback(target_response, response_headers)
     end
 
     def extract_http_request_headers(env)
@@ -129,9 +130,9 @@ module Rack
       @global_options=options
     end
 
-    def reverse_proxy(matcher, url=nil, opts={})
+    def reverse_proxy(matcher, url=nil, opts={}, &blk)
       raise GenericProxyURI.new(url) if matcher.is_a?(String) && url.is_a?(String) && URI(url).class == URI::Generic
-      @matchers << ReverseProxyMatcher.new(matcher,url,opts)
+      @matchers << ReverseProxyMatcher.new(matcher,url,opts,&blk)
     end
   end
 end
